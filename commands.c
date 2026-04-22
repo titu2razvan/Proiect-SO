@@ -150,7 +150,7 @@ void remove_report(int argc, char **argv){
 void update_threshold(int argc, char **argv){
     printf("update_threshold\n");
 }
-c
+
 void filter(int argc, char **argv){
     printf("filter\n");
 }
