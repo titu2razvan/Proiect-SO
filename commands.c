@@ -138,7 +138,7 @@ void list(int argc, char **argv){
     close(fd);
 
 }
-
+s
 void view(int argc, char **argv){
     printf("view\n");
 }
