@@ -181,9 +181,34 @@ int districtSetup(char *district){
     }
 
     return 0;
-
-
 }
+
+void modeToString(mode_t mode, char *out){
+    out[0]= (mode & S_IRUSR) ? 'r' :'-';
+    out[1]= (mode & S_IWUSR) ? 'w' :'-';
+    out[2]= (mode & S_IXUSR) ? 'x' :'-';
+    
+    out[3]= (mode & S_IRGRP) ? 'r' :'-';
+    out[4]= (mode & S_IWGRP) ? 'w' :'-';
+    out[5]= (mode & S_IXGRP) ? 'x' :'-';
+    
+    out[6]= (mode & S_IROTH) ? 'r' :'-';
+    out[7]= (mode & S_IWOTH) ? 'w' :'-';
+    out[8]= (mode & S_IXOTH) ? 'x' :'-';
+    out[9]='\0';
+}
+void printReport(const Report *r){
+    printf("Report ID: %d\n",r->report_id);
+    printf("Inspector: %s\n",r->inspector);
+    printf("Latitude: %.2f\n",r->latitude);
+    printf("Longitude: %.2f\n",r->longitude);
+    printf("Category: %s\n",r->category);
+    printf("Severity: %ld\n",r->severity);
+    printf("Timestamp:",r->timestamp);
+    printf("Description: %s\n",r->description);
+    printf("-------------------------------------\n");
+}
+
 
 
 

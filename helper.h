@@ -44,4 +44,7 @@ void buildSymlinkPath(char *out, char *district);
 int getNextReportId(char *district);
 int districtSetup(char *district);
 
+void modeToString(mode_t mode, char *out);
+void printReport(const Report *r);
+
 #endif

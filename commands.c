@@ -85,7 +85,58 @@ void add(int argc, char **argv){
 }
 
 void list(int argc, char **argv){
-    printf("list\n");
+    char *role=getRole(argc,argv);
+    char *district = getDistrict(argc, argv);
+    int fd;
+    char reportsPath[PATH_LEN];
+    buildReportsPath(reportsPath,district);
+    struct stat st;
+    char permString[10];
+    char *timeString;
+    Report r;
+    if(role==NULL || district ==NULL){
+        fprintf(stderr,"Inavalid arguments for list function");
+        return;
+    }
+    if(stat(reportsPath, &st)== -1){
+    perror("report.dat stat error");
+    return;
+    }
+
+    if(strcmp(role, "manager") == 0){
+        if((st.st_mode & S_IRUSR) == 0){
+            fprintf(stderr, "Manager has no write permission on reports.dat\n");
+            return;
+        }
+    }
+    else if(strcmp(role, "inspector") == 0){
+        if((st.st_mode & S_IRGRP) == 0){
+            fprintf(stderr, "Inspector has no write permission on reports.dat\n");
+            return;
+        }
+    }
+    else{
+        fprintf(stderr,"Invalid role");
+        return;
+    }
+
+    modeToString(st.st_mode, permString);
+    timeString=ctime(&st.st_mtime);
+    printf("reports.dat info:\n");
+    printf("Permissions: %s\n",permString);
+    printf("Size: %ld bytes\n",(long)st.st_size);
+    printf("Last modified: %s", timeString);
+
+    fd = open(reportsPath, O_RDONLY);
+    if(fd==-1){
+        perror("error opening report.dat");
+    }
+
+    while(read(fd, &r,sizeof(Report))==sizeof(Report)){
+        printReport(&r);
+    }
+    close(fd);
+
 }
 
 void view(int argc, char **argv){
