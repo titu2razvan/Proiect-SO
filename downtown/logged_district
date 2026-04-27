@@ -1,0 +1,8 @@
+2026-04-27 09:07:34 | role=inspector | user=bob | action=add report_id=2
+2026-04-27 09:07:46 | role=manager | user=alice | action=add report_id=3
+2026-04-27 09:07:46 | role=manager | user=alice | action=list
+2026-04-27 09:07:46 | role=inspector | user=bob | action=view report_id=1
+2026-04-27 09:07:46 | role=inspector | user=bob | action=filter
+2026-04-27 09:07:46 | role=manager | user=alice | action=remove_report report_id=1
+2026-04-27 09:07:46 | role=manager | user=alice | action=list
+2026-04-27 09:09:55 | role=inspector | user=bob | action=filter

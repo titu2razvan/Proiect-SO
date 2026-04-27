@@ -1,0 +1,5 @@
+Compilare in Linux / WSL:
+
+gcc -Wall -Wextra -std=c11 city_manager.c commands.c helper.c -o city_manager
+
+
