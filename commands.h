@@ -7,5 +7,6 @@ void view(int argc, char **argv);
 void remove_report(int argc, char **argv);
 void update_threshold(int argc, char **argv);
 void filter(int argc, char **argv);
+void remove_district(int argc, char **argv);
 
 #endif

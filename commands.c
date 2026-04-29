@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include "commands.h"
 #include "helper.h"
 
@@ -66,20 +67,12 @@ void add(int argc, char **argv){
         return;
     }
 
-    if(strcmp(role, "manager") == 0){
-        if((st.st_mode & S_IWUSR) == 0){
-            fprintf(stderr, "Manager has no write permission on reports.dat\n");
-            return;
-        }
-    }
-    else if(strcmp(role, "inspector") == 0){
-        if((st.st_mode & S_IWGRP) == 0){
-            fprintf(stderr, "Inspector has no write permission on reports.dat\n");
-            return;
-        }
-    }
-    else{
+    if(!isValidRole(role)){
         fprintf(stderr, "Invalid role.\n");
+        return;
+    }
+    if(!hasRolePermission(role, st.st_mode, S_IWUSR, S_IWGRP)){
+        fprintf(stderr, "Permission denied: %s cannot write reports.dat\n", role);
         return;
     }
 
@@ -164,20 +157,12 @@ void list(int argc, char **argv){
         return;
     }
 
-    if(strcmp(role, "manager") == 0){
-        if((st.st_mode & S_IRUSR) == 0){
-            fprintf(stderr, "Manager has no read permission on reports.dat\n");
-            return;
-        }
-    }
-    else if(strcmp(role, "inspector") == 0){
-        if((st.st_mode & S_IRGRP) == 0){
-            fprintf(stderr, "Inspector has no read permission on reports.dat\n");
-            return;
-        }
-    }
-    else{
+    if(!isValidRole(role)){
         fprintf(stderr, "Invalid role.\n");
+        return;
+    }
+    if(!hasRolePermission(role, st.st_mode, S_IRUSR, S_IRGRP)){
+        fprintf(stderr, "Permission denied: %s cannot read reports.dat\n", role);
         return;
     }
 
@@ -228,20 +213,12 @@ void view(int argc, char **argv){
         return;
     }
 
-    if(strcmp(role, "manager") == 0){
-        if((st.st_mode & S_IRUSR) == 0){
-            fprintf(stderr, "Manager has no read permission on reports.dat\n");
-            return;
-        }
-    }
-    else if(strcmp(role, "inspector") == 0){
-        if((st.st_mode & S_IRGRP) == 0){
-            fprintf(stderr, "Inspector has no read permission on reports.dat\n");
-            return;
-        }
-    }
-    else{
+    if(!isValidRole(role)){
         fprintf(stderr, "Invalid role.\n");
+        return;
+    }
+    if(!hasRolePermission(role, st.st_mode, S_IRUSR, S_IRGRP)){
+        fprintf(stderr, "Permission denied: %s cannot read reports.dat\n", role);
         return;
     }
 
@@ -438,11 +415,9 @@ void filter(int argc, char **argv){
     char *user = getUser(argc, argv);
     char *district = getDistrict(argc, argv);
     char reportsPath[PATH_LEN];
-    char field[FIELD_LEN];
-    char op[OP_LEN];
-    char value[VALUE_LEN];
-    int commandIndex;
-    int conditionStart;
+    char field[FIELD_LEN], op[OP_LEN], value[VALUE_LEN];
+    int commandIndex = getCommandIndex(argc, argv);
+    int conditionStart = commandIndex + 2;
     int found = 0;
     int fd;
     struct stat st;
@@ -453,12 +428,16 @@ void filter(int argc, char **argv){
         return;
     }
 
-    commandIndex = getCommandIndex(argc, argv);
-    conditionStart = commandIndex + 2;
-
     if(commandIndex == -1 || conditionStart >= argc){
         fprintf(stderr, "Filter requires at least one condition.\n");
         return;
+    }
+
+    for(int i = conditionStart; i < argc; i++){
+        if(!parse_condition(argv[i], field, op, value) || !isSupportedFilterField(field)){
+            fprintf(stderr, "Invalid condition: %s\n", argv[i]);
+            return;
+        }
     }
 
     buildReportsPath(reportsPath, district);
@@ -468,33 +447,13 @@ void filter(int argc, char **argv){
         return;
     }
 
-    if(strcmp(role, "manager") == 0){
-        if((st.st_mode & S_IRUSR) == 0){
-            fprintf(stderr, "Manager has no read permission on reports.dat\n");
-            return;
-        }
-    }
-    else if(strcmp(role, "inspector") == 0){
-        if((st.st_mode & S_IRGRP) == 0){
-            fprintf(stderr, "Inspector has no read permission on reports.dat\n");
-            return;
-        }
-    }
-    else{
+    if(!isValidRole(role)){
         fprintf(stderr, "Invalid role.\n");
         return;
     }
-
-    for(int i = conditionStart; i < argc; i++){
-        if(!parse_condition(argv[i], field, op, value)){
-            fprintf(stderr, "Invalid condition: %s\n", argv[i]);
-            return;
-        }
-
-        if(!isSupportedFilterField(field)){
-            fprintf(stderr, "Unsupported filter field: %s\n", field);
-            return;
-        }
+    if(!hasRolePermission(role, st.st_mode, S_IRUSR, S_IRGRP)){
+        fprintf(stderr, "Permission denied: %s cannot read reports.dat\n", role);
+        return;
     }
 
     fd = open(reportsPath, O_RDONLY);
@@ -505,37 +464,68 @@ void filter(int argc, char **argv){
 
     while(read(fd, &r, sizeof(Report)) == sizeof(Report)){
         int matchesAll = 1;
-
         for(int i = conditionStart; i < argc; i++){
-            if(!parse_condition(argv[i], field, op, value)){
-                fprintf(stderr, "Invalid condition: %s\n", argv[i]);
-                close(fd);
-                return;
-            }
-
-            if(!isSupportedFilterField(field)){
-                fprintf(stderr, "Unsupported filter field: %s\n", field);
-                close(fd);
-                return;
-            }
-
+            parse_condition(argv[i], field, op, value);
             if(!match_condition(&r, field, op, value)){
                 matchesAll = 0;
                 break;
             }
         }
-
-        if(matchesAll){
-            printReport(&r);
-            found = 1;
-        }
+        if(matchesAll){ printReport(&r); found = 1; }
     }
 
     close(fd);
 
-    if(!found){
-        printf("No reports matched the filter.\n");
+    if(!found) printf("No reports matched the filter.\n");
+    appendActionLog(district, role, user, "filter");
+}
+
+void remove_district(int argc, char **argv){
+    char *role = getRole(argc, argv);
+    char *user = getUser(argc, argv);
+    char *district = getDistrict(argc, argv);
+    char districtPath[PATH_LEN];
+    char symlinkPath[PATH_LEN];
+    struct stat st;
+    pid_t pid;
+    int status;
+
+    if(role == NULL || user == NULL || district == NULL){
+        fprintf(stderr, "Usage: --remove_district <district>\n");
+        return;
     }
 
-    appendActionLog(district, role, user, "filter");
+    if(strcmp(role, "manager") != 0){
+        fprintf(stderr, "Only the manager role may remove districts.\n");
+        return;
+    }
+
+    buildDistrictPath(districtPath, district);
+    buildSymlinkPath(symlinkPath, district);
+
+    if(stat(districtPath, &st) == -1){
+        fprintf(stderr, "District '%s' does not exist.\n", district);
+        return;
+    }
+
+    pid = fork();
+    if(pid == -1){ perror("fork"); return; }
+
+    if(pid == 0){
+        execlp("rm", "rm", "-rf", districtPath, NULL);
+        perror("execlp");
+        exit(1);
+    }
+
+    if(waitpid(pid, &status, 0) == -1){ perror("waitpid"); return; }
+
+    if(!WIFEXITED(status) || WEXITSTATUS(status) != 0){
+        fprintf(stderr, "Failed to remove district directory.\n");
+        return;
+    }
+
+    if(lstat(symlinkPath, &st) == 0) unlink(symlinkPath);
+
+    printf("District '%s' removed.\n", district);
+    appendActionLog(district, role, user, "remove_district");
 }

@@ -18,6 +18,7 @@ int commandSelector(int argc, char **argv){
     if(strcmp(cmd, "--remove_report") == 0) return 4;
     if(strcmp(cmd, "--update_threshold") == 0) return 5;
     if(strcmp(cmd, "--filter") == 0) return 6;
+    if(strcmp(cmd, "--remove_district") == 0) return 7;
 
     return 0;
 }
@@ -43,6 +44,9 @@ void selectCommand(int argc, char **argv){
             break;
         case 6:
             filter(argc, argv);
+            break;
+        case 7:
+            remove_district(argc , argv);
             break;
         default:
             fprintf(stderr, "Unknown command.\n");

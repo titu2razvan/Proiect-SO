@@ -9,7 +9,7 @@
 #define DESC_LEN 128
 #define PATH_LEN 256
 #define FIELD_LEN 32
-#define OP_LEN 3
+#define OP_LEN 4
 #define VALUE_LEN 128
 #define ACTION_LEN 256
 

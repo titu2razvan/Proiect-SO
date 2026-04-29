@@ -6,3 +6,11 @@
 2026-04-27 09:07:46 | role=manager | user=alice | action=remove_report report_id=1
 2026-04-27 09:07:46 | role=manager | user=alice | action=list
 2026-04-27 09:09:55 | role=inspector | user=bob | action=filter
+2026-04-29 18:49:19 | role=inspector | user=bob | action=list
+2026-04-29 19:12:52 | role=manager | user=razvan | action=filter
+2026-04-29 19:12:52 | role=inspector | user=bob | action=filter
+2026-04-29 19:13:11 | role=inspector | user=bob | action=filter
+2026-04-29 19:14:31 | role=manager | user=razvan | action=filter
+2026-04-29 19:14:31 | role=inspector | user=bob | action=filter
+2026-04-29 19:14:42 | role=manager | user=razvan | action=filter
+2026-04-29 19:14:52 | role=inspector | user=bob | action=filter
