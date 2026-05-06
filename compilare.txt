@@ -2,4 +2,4 @@ Compilare in Linux / WSL:
 
 gcc -Wall -Wextra -std=c11 city_manager.c commands.c helper.c -o city_manager
 
-
+gcc -Wall -Wextra -std=c11 monitor_reports.c -o monitor_reports

@@ -5,6 +5,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include "commands.h"
@@ -31,6 +32,46 @@ static int parseIntArgument(const char *text, const char *name, int *value){
 
     *value = (int)parsedValue;
     return 1;
+}
+
+static void notify_monitor(const char *district, const char *role, const char *user){
+    char buf[32];
+    ssize_t n;
+    pid_t pid;
+    char *endPtr;
+    int fd;
+
+    fd = open(".monitor_pid", O_RDONLY);
+    if(fd == -1){
+        appendActionLog(district, role, user,
+            "monitor notification failed: .monitor_pid not found");
+        return;
+    }
+
+    n = read(fd, buf, sizeof(buf) - 1);
+    close(fd);
+
+    if(n <= 0){
+        appendActionLog(district, role, user,
+            "monitor notification failed: could not read PID");
+        return;
+    }
+    buf[n] = '\0';
+
+    pid = (pid_t)strtol(buf, &endPtr, 10);
+    if(endPtr == buf || pid <= 0){
+        appendActionLog(district, role, user,
+            "monitor notification failed: invalid PID in .monitor_pid");
+        return;
+    }
+
+    if(kill(pid, SIGUSR1) == -1){
+        appendActionLog(district, role, user,
+            "monitor notification failed: kill() returned error");
+    } else {
+        appendActionLog(district, role, user,
+            "monitor notified of new report via SIGUSR1");
+    }
 }
 
 static int isSupportedFilterField(const char *field){
@@ -125,6 +166,8 @@ void add(int argc, char **argv){
 
     close(fd);
     printf("Report added.\n");
+
+    notify_monitor(district, role, user);
 
     if(readSeverityThreshold(district, &threshold) == 0 && r.severity >= threshold){
         printf("Escalation alert: severity %d meets threshold %d.\n", r.severity, threshold);
@@ -517,7 +560,9 @@ void remove_district(int argc, char **argv){
         exit(1);
     }
 
-    if(waitpid(pid, &status, 0) == -1){ perror("waitpid"); return; }
+    if(waitpid(pid, &status, 0) == -1){ 
+        perror("waitpid"); return; 
+    }
 
     if(!WIFEXITED(status) || WEXITSTATUS(status) != 0){
         fprintf(stderr, "Failed to remove district directory.\n");
